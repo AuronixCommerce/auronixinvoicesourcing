@@ -1,0 +1,123 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "members": {
+      ".read": "auth != null && auth.uid === 'w3NzuxTFqwYoweS9CWOXC8RROzp1'",
+      ".write": "auth != null && auth.uid === 'w3NzuxTFqwYoweS9CWOXC8RROzp1'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && newData.exists() && ((!data.exists() && newData.child('id').val() === $uid && newData.child('email').val() === auth.token.email && newData.child('role').val() === 'user' && newData.child('status').val() === 'pending') || (data.exists() && newData.child('id').val() === data.child('id').val() && newData.child('email').val() === data.child('email').val() && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val() && newData.child('created').val() === data.child('created').val()))",
+        ".validate": "newData.hasChildren(['id','email','name','company','phone','status','role','created'])",
+        "id": {
+          ".validate": "newData.isString() && newData.val() === $uid"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().length <= 320"
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+        },
+        "company": {
+          ".validate": "newData.isString() && newData.val().length <= 150"
+        },
+        "phone": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "status": {
+          ".validate": "newData.val() === 'pending' || newData.val() === 'approved' || newData.val() === 'rejected'"
+        },
+        "role": {
+          ".validate": "newData.val() === 'user' || (auth != null && auth.uid === 'w3NzuxTFqwYoweS9CWOXC8RROzp1' && newData.val() === 'admin')"
+        },
+        "created": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "settings": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.uid === 'w3NzuxTFqwYoweS9CWOXC8RROzp1'",
+      "usd_pkr": {
+        ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10000"
+      },
+      "$other": {
+        ".validate": false
+      }
+    },
+    "inventory": {
+      ".read": "auth != null && auth.uid === 'w3NzuxTFqwYoweS9CWOXC8RROzp1'",
+      ".write": "auth != null && auth.uid === 'w3NzuxTFqwYoweS9CWOXC8RROzp1'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid && auth.token.email_verified === true && root.child('members').child($uid).child('status').val() === 'approved'",
+        "products": {
+          "$id": {
+            ".validate": "newData.child('id').val() === $id && newData.child('user_id').val() === $uid && newData.child('available').isNumber() && newData.child('available').val() >= 0 && newData.child('available').val() % 1 === 0 && newData.child('price').isNumber() && newData.child('price').val() >= 1"
+          }
+        },
+        "shipments": {
+          "$id": {
+            ".write": "auth != null && auth.uid === $uid && auth.token.email_verified === true && root.child('members').child($uid).child('status').val() === 'approved' && !data.exists() && newData.exists()",
+            ".validate": "newData.hasChildren(['id','user_id','product_id','product_name','units','price','rate','address','shipment_ref','notes','status','tracking','reserved','created','updated']) && ((auth != null && auth.uid === 'w3NzuxTFqwYoweS9CWOXC8RROzp1') || (newData.child('user_id').val() === auth.uid && newData.child('status').val() === 'Waiting for approval' && newData.child('reserved').val() === false && newData.child('tracking').val() === '' && root.child('inventory').child($uid).child('products').child(newData.child('product_id').val()).exists() && newData.child('price').val() === root.child('inventory').child($uid).child('products').child(newData.child('product_id').val()).child('price').val() && newData.child('product_name').val() === root.child('inventory').child($uid).child('products').child(newData.child('product_id').val()).child('name').val() && newData.child('units').val() <= root.child('inventory').child($uid).child('products').child(newData.child('product_id').val()).child('available').val() && newData.child('rate').val() === root.child('settings').child('usd_pkr').val()))",
+            "id": {
+              ".validate": "newData.isString() && newData.val() === $id"
+            },
+            "user_id": {
+              ".validate": "newData.isString() && newData.val() === $uid"
+            },
+            "product_id": {
+              ".validate": "newData.isString() && newData.val().length <= 100"
+            },
+            "product_name": {
+              ".validate": "newData.isString() && newData.val().length <= 160"
+            },
+            "units": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 1000000 && newData.val() % 1 === 0"
+            },
+            "price": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100000000 && newData.val() % 1 === 0"
+            },
+            "rate": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10000"
+            },
+            "address": {
+              ".validate": "newData.isString() && newData.val().length >= 15 && newData.val().length <= 2000"
+            },
+            "shipment_ref": {
+              ".validate": "newData.isString() && newData.val().length <= 100"
+            },
+            "notes": {
+              ".validate": "newData.isString() && newData.val().length <= 2000"
+            },
+            "status": {
+              ".validate": "newData.val() === 'Waiting for approval' || newData.val() === 'Order booked' || newData.val() === 'In transit' || newData.val() === 'At warehouse' || newData.val() === 'Out for delivery' || newData.val() === 'Delivered' || newData.val() === 'Cancelled'"
+            },
+            "tracking": {
+              ".validate": "newData.isString() && newData.val().length <= 200"
+            },
+            "reserved": {
+              ".validate": "newData.isBoolean()"
+            },
+            "created": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "updated": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "events": {},
+        "activity": {},
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
