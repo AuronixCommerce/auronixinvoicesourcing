@@ -1,6 +1,6 @@
-import {env} from 'cloudflare:workers';
 import {FirebaseStore,verifyFirebase,fail} from '../../../lib/firebase/server';
 export const dynamic='force-dynamic';
+export const runtime='nodejs';
 const respond=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 const str=(v:unknown,max=300)=>typeof v==='string'?v.trim().slice(0,max):'';
 const num=(v:unknown,min:number,max:number)=>{const n=Number(v);if(!Number.isFinite(n)||n<min||n>max)fail('Please enter a valid number.');return n;};
@@ -9,7 +9,7 @@ const records=(v:any):any[]=>Object.values(v||{});
 const sort=(v:any[])=>v.sort((a,b)=>String(b.created).localeCompare(String(a.created)));
 async function context(request:Request){
  const identity=await verifyFirebase(request);
- const store=new FirebaseStore((env as any).FIREBASE_DATABASE_URL,identity.token);
+ const store=new FirebaseStore(process.env.FIREBASE_DATABASE_URL,identity.token);
  const path='members/'+identity.uid;
  let me=await store.get(path);
  if(!me){me=await store.transaction(path,current=>current||{id:identity.uid,email:identity.email,name:identity.name,company:'',phone:'',status:identity.admin?'approved':'pending',role:identity.admin?'admin':'user',created:new Date().toISOString()});}
@@ -32,7 +32,7 @@ export async function GET(request:Request){try{
  for(const s of shipments)logs.push({id:'request-'+s.id,user_id:s.user_id,message:`FBA shipment requested: ${s.units} × ${s.product_name}`,created:s.created});
  for(const m of people)logs.push({id:'member-'+m.id,user_id:m.id,message:m.status==='pending'?`New account awaiting approval: ${m.name}`:`Account created: ${m.name}`,created:m.created});
  return respond({me,members:sort(people),products,shipments,events:sort(events),activity:sort(logs).slice(0,30),rate,rateConfigured:!!settings?.usd_pkr,emailVerified:identity.emailVerified,verificationRequired:!identity.admin&&!identity.emailVerified});
- }catch(e:any){return respond({error:e.message,setupRequired:!(env as any).FIREBASE_DATABASE_URL},e.status||500);}}
+ }catch(e:any){return respond({error:e.message,setupRequired:!process.env.FIREBASE_DATABASE_URL},e.status||500);}}
 export async function POST(request:Request){try{
  const origin=request.headers.get('origin');if(origin&&origin!==new URL(request.url).origin)fail('Invalid request origin.',403);
  const {identity,store,me}=await context(request);const body:any=await request.json();const now=new Date().toISOString();const id=crypto.randomUUID();
@@ -80,4 +80,4 @@ export async function POST(request:Request){try{
  const event={id,shipment_id:shipmentId,status,message:str(body.message,2000)||status,location:str(body.location,200),created:now};w.events={...w.events,[id]:event};logTo(w,uid,`Shipment ${status.toLowerCase()}: ${s.product_name}`);return w;});break;}
  default:fail('Unknown action.');}
  return respond({ok:true});
- }catch(e:any){return respond({error:e.message||'Something went wrong.',setupRequired:!(env as any).FIREBASE_DATABASE_URL},e.status||500);}}
+ }catch(e:any){return respond({error:e.message||'Something went wrong.',setupRequired:!process.env.FIREBASE_DATABASE_URL},e.status||500);}}

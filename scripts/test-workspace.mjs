@@ -6,7 +6,8 @@ const identities={admin:{localId:ADMIN,email:'admin@example.com',emailVerified:t
 let root={},version=0,conflictNext=false;
 const at=path=>path.reduce((v,k)=>v?.[k],root)??null;
 const put=(path,value)=>{let node=root;for(const k of path.slice(0,-1))node=node[k]||(node[k]={});node[path.at(-1)]=structuredClone(value);version++;};
-globalThis.__firebaseTestEnv={FIREBASE_DATABASE_URL:'https://test-auronix.firebaseio.com'};
+const originalDatabaseUrl=process.env.FIREBASE_DATABASE_URL;
+process.env.FIREBASE_DATABASE_URL='https://test-auronix.firebaseio.com';
 const realFetch=globalThis.fetch;
 globalThis.fetch=async(input,init={})=>{
  const u=new URL(String(input));
@@ -20,7 +21,7 @@ globalThis.fetch=async(input,init={})=>{
  if(headers.has('if-match')&&headers.get('if-match')!=='"'+version+'"')return Response.json({error:'conflict'},{status:412});
  const value=JSON.parse(init.body);put(path,value);return Response.json(value);
 };
-const compiled=await build({entryPoints:['app/api/workspace/route.ts'],bundle:true,write:false,format:'esm',platform:'neutral',plugins:[{name:'test-env',setup(b){b.onResolve({filter:/^cloudflare:workers$/},()=>({path:'env',namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},()=>({contents:'export const env=globalThis.__firebaseTestEnv;',loader:'js'}));}}]});
+const compiled=await build({entryPoints:['app/api/workspace/route.ts'],bundle:true,write:false,format:'esm',platform:'node'});
 const route=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
 async function call(token,body){const h={'Content-Type':'application/json',Origin:'https://site.test'};if(token)h.Authorization='Bearer '+token;const req=new Request('https://site.test/api/workspace',{method:body?'POST':'GET',headers:h,body:body?JSON.stringify(body):undefined});const r=await (body?route.POST(req):route.GET(req));return {status:r.status,data:await r.json()};}
 async function ok(token,b){const r=await call(token,b);assert.equal(r.status,200,JSON.stringify(r));return r.data;}
@@ -53,6 +54,6 @@ try{
  await ok('unverified');await ok('admin',{action:'approve',id:'unverified'});assert.equal((await ok('unverified')).verificationRequired,true);
  assert.equal((await call('unverified',request)).status,403);
  root.members.member.role='admin';assert.equal((await ok('member')).me.role,'user');assert.equal((await call('member',{action:'rate',rate:1})).status,403);
- globalThis.__firebaseTestEnv.FIREBASE_DATABASE_URL='';const missing=await call('admin');assert.equal(missing.status,503);assert.equal(missing.data.setupRequired,true);
+ process.env.FIREBASE_DATABASE_URL='';const missing=await call('admin');assert.equal(missing.status,503);assert.equal(missing.data.setupRequired,true);
  console.log('PASS: Firebase ID-token validation, pinned admin UID, pending registration, approval, tenant isolation, email verification, ETag retries, stock reservation at approval, overbooking prevention, custom tracking, currency snapshots and cancellation.');
-}finally{globalThis.fetch=realFetch;}
+}finally{globalThis.fetch=realFetch;if(originalDatabaseUrl===undefined)delete process.env.FIREBASE_DATABASE_URL;else process.env.FIREBASE_DATABASE_URL=originalDatabaseUrl;}

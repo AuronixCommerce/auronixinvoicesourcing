@@ -39,3 +39,10 @@ Legacy D1 data and migrations are preserved, but the workspace API now uses Fire
 - Production build through the Sites build helper.
 
 The browser account pages were visually checked without creating a production test user or sending password-reset email to an unrelated address. Live signup and RTDB persistence still require project setup and account-level verification.
+
+
+## Vercel deployment
+
+The app uses standard Next.js commands: `npm run dev`, `npm run build`, and `npm start`. Firebase API routes run on Node.js and read `process.env.FIREBASE_DATABASE_URL` instead of Cloudflare bindings.
+
+Set `FIREBASE_DATABASE_URL` to your exact existing RTDB URL in Vercel Project Settings → Environment Variables. For local development, put the variable in an ignored `.env.local` file, then restart the dev server. The earlier `.dev.vars` setup was for Cloudflare. Firebase authentication, the administrator UID, approval checks, and database rules remain unchanged. The previous ChatGPT-hosted copy has separate access settings.
